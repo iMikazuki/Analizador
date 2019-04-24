@@ -5,22 +5,23 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.swing.JOptionPane;
 import javax.swing.table.DefaultTableModel;
-import javax.swing.table.TableModel;
 
 /**
  *
  * @author Erik Ortiz
  */
 public class Compi extends javax.swing.JFrame implements ActionListener {
-    
+
     public Compi() {
         initComponents();
     }
 
-    
+    static int numIDE = 1;
+    static int numOPER = 1;
     static List<Variables> TablaVariables = new ArrayList<>();
-    static List<Operadores> TablaOperadores = new ArrayList<>();
+    static List<Variables> TablaErrores = new ArrayList<>();
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
@@ -36,7 +37,7 @@ public class Compi extends javax.swing.JFrame implements ActionListener {
         jScrollPane3 = new javax.swing.JScrollPane();
         tableVariables = new javax.swing.JTable();
         jScrollPane4 = new javax.swing.JScrollPane();
-        tableOperadores = new javax.swing.JTable();
+        tableErrores = new javax.swing.JTable();
         jLabel2 = new javax.swing.JLabel();
         jLabel3 = new javax.swing.JLabel();
         btnLimpiar = new javax.swing.JButton();
@@ -61,7 +62,7 @@ public class Compi extends javax.swing.JFrame implements ActionListener {
         ));
         jScrollPane3.setViewportView(tableVariables);
 
-        tableOperadores.setModel(new javax.swing.table.DefaultTableModel(
+        tableErrores.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
 
             },
@@ -69,13 +70,13 @@ public class Compi extends javax.swing.JFrame implements ActionListener {
                 "Token", "Descripcion"
             }
         ));
-        jScrollPane4.setViewportView(tableOperadores);
+        jScrollPane4.setViewportView(tableErrores);
 
         jLabel2.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel2.setText("TABLA DE VARIABLES");
+        jLabel2.setText("TABLA DE SIMBOLOS");
 
         jLabel3.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel3.setText("TABLA DE OPERADORES");
+        jLabel3.setText("TABLA DE ERRORES");
 
         btnLimpiar.setText("Resetear");
         btnLimpiar.addActionListener(this);
@@ -153,7 +154,7 @@ public class Compi extends javax.swing.JFrame implements ActionListener {
         
         String instruccion = txtInst.getText();         //pedir la instruccion
         
-        String[] token = instruccion.split("\\W+");                                         //dividir por tokens la instruccion
+        String[] token = instruccion.split("\\s");                                         //dividir por tokens la instruccion
         
         for (int i=0; i<token.length;i++){      //para checar cada token
             checarVariable(token[i]);
@@ -212,35 +213,41 @@ public class Compi extends javax.swing.JFrame implements ActionListener {
     ///////////////////// METODOS ////////////////////////
     
     public static void checarVariable(String token){
-        Pattern pat = Pattern.compile("[a-zA-Z]||[a-zA-Z]\\w*[^not ^and ^or]");
-        Matcher mat = pat.matcher(token);
+        Pattern pat = Pattern.compile("[a-zA-Z]||[a-zA-Z]\\w*");
+        Matcher matIDE = pat.matcher(token);
         
-        Pattern patNOT = Pattern.compile("not");        //uso este para ignorar "not"
+        Pattern patNOT = Pattern.compile("!");        //uso este para ignorar "not"
         Matcher matNOT = patNOT.matcher(token);         //uso este para ignorar "not"
         
-        Pattern patAND = Pattern.compile("and");        //uso este para ignorar "and"
+        Pattern patAND = Pattern.compile("&&");        //uso este para ignorar "and"
         Matcher matAND = patAND.matcher(token);         //uso este para ignorar "and"
         
-        Pattern patOR = Pattern.compile("or");          //uso este para ignorar "or"
+        Pattern patOR = Pattern.compile("||");          //uso este para ignorar "or"
         Matcher matOR = patOR.matcher(token);           //uso este para ignorar "or"
         
         Variables var;
         
-        if (mat.matches()){
-            //agregar tabla correctas
+        if (matIDE.matches()){
+            //agregar tabla variables
             if (checarExistencia(token) == false){                  // si es falso no eciste el token el la tabla y agrega
-                var = new Variables(token,"Varible Correcta"); 
+                var = new Variables(token,"IDE"+numIDE); 
+                numIDE++;
                 TablaVariables.add(var);
             }
             
         }else{
             
-            if (matNOT.find()||matAND.find()||matOR.find())        //Ignorar tokens "not, and, or"
+            if (matNOT.find()||matAND.find()||matOR.find()){        //Ignorar tokens "not, and, or"
+                   
+                //maybe agregar "!askjdal" a los simbolos
                return;
             //agregar en la tabla incorrectas
-            if (checarExistencia(token) == false){                  // si es falso no eciste el token el la tabla y agrega
+            //CHECAR AQUI PORQUE NO AGREGA A LAS INCORRECTES
+            }else{
+                if (checarExistencia(token) == false){                  // si es falso no eciste el token el la tabla y agrega
                 var = new Variables(token,"Posible varible mal escrita"); 
-                TablaVariables.add(var);
+                TablaErrores.add(var);
+                }
             }
             
         }
@@ -248,66 +255,45 @@ public class Compi extends javax.swing.JFrame implements ActionListener {
     }
      
     public static void checarNOT(String token){
-        Pattern pat = Pattern.compile("not");
+        Pattern pat = Pattern.compile("!");
         Matcher mat = pat.matcher(token);
-        Operadores oper;
+        Variables oper;
         if (mat.matches()){
-            //agregar en not correctas
-            if (checarExistenciaOper(token) == false){                  // si es falso no eciste el token el la tabla y agrega
-                oper = new Operadores(token,"Operador Correcto"); 
-                TablaOperadores.add(oper);
+            //agregar en not simbolos
+            if (checarExistencia(token) == false){                  // si es falso no existe el token el la tabla y agrega
+                oper = new Variables(token,"OPER"+numOPER); 
+                numOPER++;
+                TablaVariables.add(oper);
             }
-        }else{
-            if ((mat.find())){      //si encuentra "not" quiere decur que es un not incorrecto
-                //agregar a las incorrectas
-                if (checarExistenciaOper(token) == false){                  // si es falso no eciste el token el la tabla y agrega
-                    oper = new Operadores(token,"Posible operador mal escrito"); 
-                    TablaOperadores.add(oper);
-                }
-            }
-                
         }
         
     }
     
     public static void checarAND(String token){
-        Pattern pat = Pattern.compile("and");
+        Pattern pat = Pattern.compile("&&");
         Matcher mat = pat.matcher(token);   
-        Operadores oper;
+        Variables oper;
         if (mat.matches()){
-            //agregar en and correctas
-             if (checarExistenciaOper(token) == false){                  // si es falso no eciste el token el la tabla y agrega
-                oper = new Operadores(token,"Operador Correcto"); 
-                TablaOperadores.add(oper);
-            }
-        }else{
-            if ((mat.find())){      //si encuentra "and" quiere decur que es un and incorrecto
-               //agregar a las incorrectas
-                if (checarExistenciaOper(token) == false){                  // si es falso no eciste el token el la tabla y agrega
-                    oper = new Operadores(token,"Posible operador mal escrito"); 
-                    TablaOperadores.add(oper);
-                }
+            //agregar en and simbolos
+             if (checarExistencia(token) == false){                  // si es falso no existe el token el la tabla y agrega
+                oper = new Variables(token,"OPER"+numOPER); 
+                numOPER++;
+                TablaVariables.add(oper);
             }
         }
     }
 
     public static void checarOR(String token){
-        Pattern pat = Pattern.compile("or");
+        //CHECAR AQUI PORQUE NO ME AGREGA EL OR
+        Pattern pat = Pattern.compile("|");
         Matcher mat = pat.matcher(token);  
-        Operadores oper;
+        Variables oper;
         if (mat.matches()){
             //agregar en or correctas
-            if (checarExistenciaOper(token) == false){                  // si es falso no eciste el token el la tabla y agrega
-                oper = new Operadores(token,"Operador Correcto"); 
-                TablaOperadores.add(oper);
-            }
-        }else{
-            if ((mat.find())){      //si encuentra "or" quiere decur que es un or incorrecto
-                //agregar a las incorrectas
-                if (checarExistenciaOper(token) == false){                  // si es falso no eciste el token el la tabla y agrega
-                    oper = new Operadores(token,"Posible operador mal escrito"); 
-                    TablaOperadores.add(oper);
-                }
+            if (checarExistencia(token) == false){                  // si es falso no existe el token el la tabla y agrega
+                oper = new Variables(token,"OPER"+numOPER); 
+                numOPER++;
+                TablaVariables.add(oper);
             }
         }
     }
@@ -322,15 +308,6 @@ public class Compi extends javax.swing.JFrame implements ActionListener {
         return false;
     }
     
-    public static boolean checarExistenciaOper(String token){
-        Operadores oper;
-        for (int i=0; i<TablaOperadores.size();i++){
-            oper = TablaOperadores.get(i);
-            if (oper.getToken().equals(token))
-                return true;
-        }
-        return false;
-    }
     
     ////////////////////// IMPRESORES ////////////////////
     
@@ -353,13 +330,13 @@ public class Compi extends javax.swing.JFrame implements ActionListener {
         model.setColumnIdentifiers(new Object[]{"TOKEN","Descripcion"});
         Object[] row = new Object[2];
         
-        for(int i = 0; i < TablaOperadores.size(); i++)
+        for(int i = 0; i < TablaErrores.size(); i++)
         {
-            row[0] = TablaOperadores.get(i).getToken();
-            row[1] = TablaOperadores.get(i).getDescripcion();
+            row[0] = TablaErrores.get(i).getToken();
+            row[1] = TablaErrores.get(i).getDescripcion();
             model.addRow(row);
         }
-       tableOperadores.setModel(model);
+       tableErrores.setModel(model);
     }
     
     public static void limpiarTabla(){
@@ -367,10 +344,12 @@ public class Compi extends javax.swing.JFrame implements ActionListener {
              DefaultTableModel model = new DefaultTableModel();
              model.setColumnIdentifiers(new Object[]{"TOKEN","Descripcion"});
              model.setRowCount(0);
-            tableOperadores.setModel(model);
-            TablaOperadores.clear();
+            tableErrores.setModel(model);
+            TablaErrores.clear();
             tableVariables.setModel(model);
             TablaVariables.clear();
+            numIDE = 1;
+            numOPER = 1;
     
     }
     
@@ -424,7 +403,7 @@ public class Compi extends javax.swing.JFrame implements ActionListener {
     private javax.swing.JLabel jLabel4;
     private javax.swing.JScrollPane jScrollPane3;
     private javax.swing.JScrollPane jScrollPane4;
-    private static javax.swing.JTable tableOperadores;
+    private static javax.swing.JTable tableErrores;
     private static javax.swing.JTable tableVariables;
     private javax.swing.JTextField txtInst;
     // End of variables declaration//GEN-END:variables
