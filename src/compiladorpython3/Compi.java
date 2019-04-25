@@ -20,6 +20,7 @@ public class Compi extends javax.swing.JFrame implements ActionListener {
 
     static int numIDE = 1;
     static int numOPER = 1;
+    static String [] notToken;
     static List<Variables> TablaVariables = new ArrayList<>();
     static List<Variables> TablaErrores = new ArrayList<>();
     /**
@@ -44,7 +45,7 @@ public class Compi extends javax.swing.JFrame implements ActionListener {
         jLabel4 = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
-        setTitle("Creador de Tokens Python");
+        setTitle("ANAIZADOR SINTACTICO DE JAVA PARA EXPRESIONES BOOLEANAS");
         setResizable(false);
 
         jLabel1.setText("Instruccion");
@@ -57,7 +58,7 @@ public class Compi extends javax.swing.JFrame implements ActionListener {
 
             },
             new String [] {
-                "Token", "Descripcion"
+                "TOKEN", "LEXEMA"
             }
         ));
         jScrollPane3.setViewportView(tableVariables);
@@ -67,7 +68,7 @@ public class Compi extends javax.swing.JFrame implements ActionListener {
 
             },
             new String [] {
-                "Token", "Descripcion"
+                "TOKEN", "Descripcion"
             }
         ));
         jScrollPane4.setViewportView(tableErrores);
@@ -155,13 +156,9 @@ public class Compi extends javax.swing.JFrame implements ActionListener {
         String instruccion = txtInst.getText();         //pedir la instruccion
         
         String[] token = instruccion.split("\\s");                                         //dividir por tokens la instruccion
-        
-        for (int i=0; i<token.length;i++){      //para checar cada token
-            checarVariable(token[i]);
-            checarNOT(token[i]);
-            checarAND(token[i]);
-            checarOR(token[i]);   
-            
+        for (String token1 : token) {            //para checar cada token
+            checarVariable(token1);
+            checarNOT(token1);
         }   
         imprimirVariables();
         imprimirOperadores();
@@ -213,17 +210,20 @@ public class Compi extends javax.swing.JFrame implements ActionListener {
     ///////////////////// METODOS ////////////////////////
     
     public static void checarVariable(String token){
-        Pattern pat = Pattern.compile("[a-zA-Z]||[a-zA-Z]\\w*");
-        Matcher matIDE = pat.matcher(token);
+        Pattern patIDE = Pattern.compile("[a-zA-Z]||[a-zA-Z]\\w*");        //cualquier identificador que empiece por letra
+        Matcher matIDE = patIDE.matcher(token);
         
-        Pattern patNOT = Pattern.compile("!");        //uso este para ignorar "not"
-        Matcher matNOT = patNOT.matcher(token);         //uso este para ignorar "not"
+        Pattern patNOT = Pattern.compile("!");        //uso este para comparar "not"
+        Matcher matNOT = patNOT.matcher(token);         //uso este para comparar "not"
         
-        Pattern patAND = Pattern.compile("&&");        //uso este para ignorar "and"
-        Matcher matAND = patAND.matcher(token);         //uso este para ignorar "and"
+        Pattern patAND = Pattern.compile("&&");        //uso este para comparar "and"
+        Matcher matAND = patAND.matcher(token);         //uso este para comparar "and"
         
-        Pattern patOR = Pattern.compile("||");          //uso este para ignorar "or"
-        Matcher matOR = patOR.matcher(token);           //uso este para ignorar "or"
+        Pattern patOR = Pattern.compile("\\|{2}");          //uso este para comparar "or"
+        Matcher matOR = patOR.matcher(token);           //uso este para comparar "or"
+        
+        Pattern patEQ = Pattern.compile("=");          //uso este para comparar "or"
+        Matcher matEQ = patEQ.matcher(token);           //uso este para comparar "or"
         
         Variables var;
         
@@ -233,20 +233,22 @@ public class Compi extends javax.swing.JFrame implements ActionListener {
                 var = new Variables(token,"IDE"+numIDE); 
                 numIDE++;
                 TablaVariables.add(var);
-            }
-            
-        }else{
-            
-            if (matNOT.find()||matAND.find()||matOR.find()){        //Ignorar tokens "not, and, or"
-                   
-                //maybe agregar "!askjdal" a los simbolos
-               return;
-            //agregar en la tabla incorrectas
-            //CHECAR AQUI PORQUE NO AGREGA A LAS INCORRECTES
+            }      
+        }else{            
+            if (matAND.matches()||matNOT.matches()||matOR.matches()||matEQ.matches()){
+                //si no es variable es OPB
+                if (checarExistencia(token) == false){
+                    var = new Variables(token,"OPB"+numOPER); 
+                    numOPER++;
+                    TablaVariables.add(var);
+                }
             }else{
-                if (checarExistencia(token) == false){                  // si es falso no eciste el token el la tabla y agrega
-                var = new Variables(token,"Posible varible mal escrita"); 
-                TablaErrores.add(var);
+                //si no es nada es un error
+                if (!matNOT.find()){                        //ignorar NOT porque tiene su propia sintaxis
+                    if (checarExistenciaErrores(token) == false){
+                        var = new Variables(token,"Posibe identificador mal escrito"); 
+                        TablaErrores.add(var);
+                    }
                 }
             }
             
@@ -255,48 +257,33 @@ public class Compi extends javax.swing.JFrame implements ActionListener {
     }
      
     public static void checarNOT(String token){
-        Pattern pat = Pattern.compile("!");
+        Pattern pat = Pattern.compile("!\\w+");
         Matcher mat = pat.matcher(token);
         Variables oper;
         if (mat.matches()){
             //agregar en not simbolos
-            if (checarExistencia(token) == false){                  // si es falso no existe el token el la tabla y agrega
-                oper = new Variables(token,"OPER"+numOPER); 
+            String[] notToken = token.split("!");
+            
+             //agregar en or correctas
+             
+            if (checarExistencia(notToken[1]) == false){                  // si es falso no existe el token el la tabla y agrega
+                oper = new Variables(notToken[1],"IDE"+numIDE); 
+                numIDE++;
+                TablaVariables.add(oper);
+            }
+            
+            if (checarExistencia("!") == false){                  // si es falso no existe el token el la tabla y agrega
+                oper = new Variables("!","OPB"+numOPER); 
                 numOPER++;
                 TablaVariables.add(oper);
             }
+            
         }
         
     }
     
-    public static void checarAND(String token){
-        Pattern pat = Pattern.compile("&&");
-        Matcher mat = pat.matcher(token);   
-        Variables oper;
-        if (mat.matches()){
-            //agregar en and simbolos
-             if (checarExistencia(token) == false){                  // si es falso no existe el token el la tabla y agrega
-                oper = new Variables(token,"OPER"+numOPER); 
-                numOPER++;
-                TablaVariables.add(oper);
-            }
-        }
-    }
+   
 
-    public static void checarOR(String token){
-        //CHECAR AQUI PORQUE NO ME AGREGA EL OR
-        Pattern pat = Pattern.compile("|");
-        Matcher mat = pat.matcher(token);  
-        Variables oper;
-        if (mat.matches()){
-            //agregar en or correctas
-            if (checarExistencia(token) == false){                  // si es falso no existe el token el la tabla y agrega
-                oper = new Variables(token,"OPER"+numOPER); 
-                numOPER++;
-                TablaVariables.add(oper);
-            }
-        }
-    }
     
     public static boolean checarExistencia(String token){
         Variables var;
@@ -308,12 +295,21 @@ public class Compi extends javax.swing.JFrame implements ActionListener {
         return false;
     }
     
+    public static boolean checarExistenciaErrores(String token){
+        Variables var;
+        for (int i=0; i<TablaErrores.size();i++){
+            var = TablaErrores.get(i);
+            if (var.getToken().equals(token))
+                return true;
+        }
+        return false;
+    }
     
     ////////////////////// IMPRESORES ////////////////////
     
     public static void imprimirVariables(){
         DefaultTableModel model = new DefaultTableModel();
-        model.setColumnIdentifiers(new Object[]{"TOKEN","Descripcion"});
+        model.setColumnIdentifiers(new Object[]{"TOKEN","LEXEMA"});
         Object[] row = new Object[2];
         
         for(int i = 0; i < TablaVariables.size(); i++)
@@ -374,24 +370,7 @@ public class Compi extends javax.swing.JFrame implements ActionListener {
 
     }
     
-    public static class Operadores {
-        String token;
-        String descripcion;
-
-        public Operadores(String token, String descripcion) {
-            this.token = token;
-            this.descripcion = descripcion;
-        }
-
-        public String getToken() {
-            return token;
-        }
-
-        public String getDescripcion() {
-            return descripcion;
-        }
-
-    }
+    
     
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
